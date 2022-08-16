@@ -12,7 +12,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "apollo-server": "^3.10.0",
+    "apollo-server-core": "^3.10.1",
+    "apollo-server-express": "^3.10.1",
     "bcryptjs": "^2.4.3",
     "colors": "^1.4.0",
     "concurrently": "^7.3.0",

@@ -1,20 +1,40 @@
+//Import dotenv
 require("dotenv").config()
-const { ApolloServer } = require("apollo-server")
+const { ApolloServer, gql } = require("apollo-server-express")
+const {
+  ApolloServerPluginDrainHttpServer,
+  ApolloServerPluginLandingPageLocalDefault,
+} = require("apollo-server-core")
+const express = require("express")
+const http = require("http")
 const colors = require("colors")
+const typeDefs = require("./schema/schema")
 const resolvers = require("./resolvers/resolvers")
-const schema = require("./schema/schema")
-const connectDb = require("./config/connectDB")
-const isAuth = require("./utils/isAuth")
-connectDb()
 
-const server = new ApolloServer({
-  typeDefs: schema,
-  resolvers,
-  context: async ({ req }) => {
-    return await isAuth(req)
-  },
-})
+const connectDb = require("./config/connectDb")
 
-server.listen().then(({ url }) => {
-  console.log(`🚀  Server ready at ${url}graphql`.cyan.underline)
-})
+async function startApolloServer(typeDefs, resolvers) {
+  const app = express()
+  const httpServer = http.createServer(app)
+  const server = new ApolloServer({
+    typeDefs,
+    resolvers,
+    csrfPrevention: true,
+    cache: "bounded",
+    plugins: [
+      ApolloServerPluginDrainHttpServer({ httpServer }),
+      ApolloServerPluginLandingPageLocalDefault({ embed: true }),
+    ],
+  })
+
+  await server.start()
+  await connectDb()
+  server.applyMiddleware({ app })
+  await new Promise(resolve => httpServer.listen({ port: 4000 }, resolve))
+  console.log(
+    `🚀 Server ready at http://localhost:4000${server.graphqlPath}`.cyan
+      .underline
+  )
+}
+
+startApolloServer(typeDefs, resolvers)
