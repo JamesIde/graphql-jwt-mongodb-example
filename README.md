@@ -12,13 +12,13 @@
 - MongoDB with Mongoose - Quick and easy to set up, little to no provisioning. However, this can easily be substituted for any database of choice. PlanetScale and Prisma ORM come to mind.
 - JWT - As far as authentication goes, JWT is relatively easy to understand and implement. Coupled with refresh and access tokens, its a good solution for a small project of choice.
 
-## Great, but how to consume this on the client?
-
-Good question
-
 ## Production Ready?
 
-No, just implement it in to your side project and maybe you'll learn something (like I did, this stuff is pretty cool but confusing at times)
+No, just implement it in to your side project and maybe you'll learn something (like I did, this stuff is pretty cool but confusing at times, and I haven't even touched on consuming it on the client.)
+
+## Great, but how to consume this on the client?
+
+Good question. You can use Apollo Client and store the access token in session or local storage - because the access token has a short lifespan, this is fine. The client will use the access token in the queries/mutations created by Apollo Client, but your own logic is required to determine if the response is invalid due to an expired token, and then send a request to /refresh_token, obtain the access token, then make the request to the protected resource. There are some libraries like jwt-decode and apollo-link-token-refresh. Furthermore, you'll have to send the access token as part of the context which contains the request headers so isAuth middleware can decode and verify the access token. 
 
 ## Installation
 
