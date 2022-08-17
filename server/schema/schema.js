@@ -15,22 +15,19 @@ const typeDefs = gql`
     token: String!
   }
 
-  type SuccessLoginResponse {
-    name: String!
-    email: String!
-    message: String!
+  type SuccessResponse {
     accessToken: String!
-    refreshToken: String
+    success: Boolean!
   }
   type Mutation {
     registerUser(
       name: String!
       email: String!
       password: String!
-    ): SuccessLoginResponse
+    ): SuccessResponse
   }
   type Mutation {
-    loginUser(email: String!, password: String!): SuccessLoginResponse
+    loginUser(email: String!, password: String!): SuccessResponse
   }
   type Mutation {
     refreshToken(refreshToken: String!): accessToken

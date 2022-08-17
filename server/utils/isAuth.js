@@ -1,14 +1,12 @@
 const jwt = require("jsonwebtoken")
 const User = require("../models/userModel")
 const isAuth = async req => {
-
   const token = req.headers.authorization || ""
   // We need to check if there is a token
   if (!token) return
 
   // Decode the token to get the user ID
   const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET)
-  //   console.log(decoded)
   if (!decoded) {
     throw new Error("Invalid token")
   }
@@ -26,7 +24,6 @@ const isAuth = async req => {
     name: user.name,
     email: user.email,
   }
-
   return formattedUser
 }
 

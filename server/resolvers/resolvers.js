@@ -2,21 +2,29 @@ const User = require("../models/userModel")
 const bcrypt = require("bcryptjs")
 const jwt = require("jsonwebtoken")
 const { genAccessToken, genRefreshToken } = require("../utils/genToken")
+const isAuth = require("../utils/isAuth")
 const resolvers = {
   Query: {
     // Middleware test resolver
-    async getMe(parent, args, { id }, info) {
-      const user = await User.findById(id)
-      if (!user) {
-        throw new Error("No user found")
+    async getMe(parent, args, context, info) {
+      try {
+        // Decode the token to get the user ID
+        const isAuthUser = await isAuth(context.req)
+        const loggedInUser = await User.findById(isAuthUser.id)
+
+        if (!loggedInUser) {
+          throw new Error("No user found")
+        }
+        return loggedInUser
+      } catch (error) {
+        throw new Error(error)
       }
-      return user
     },
   },
   Mutation: {
-    async registerUser(parent, { email }, context, info) {
+    async registerUser(parent, args, { res }, info) {
       // Check if user already exists
-      const userExists = await User.findOne({ email: email })
+      const userExists = await User.findOne({ email: args.email })
       if (userExists) {
         throw new Error("User already exists")
       }
@@ -33,16 +41,20 @@ const resolvers = {
 
       // Return the user on success
       if (createUser) {
+        const refreshToken = genRefreshToken(createUser.id)
+
+        res.cookie("rfTkn", refreshToken, {
+          httpOnly: true,
+          maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+        })
+
         return {
-          message: "User created successfully",
-          name: createUser.name,
-          email: createUser.email,
           accessToken: genAccessToken(createUser.id),
-          refreshToken: genRefreshToken(createUser.id),
+          success: true,
         }
       }
     },
-    async loginUser(parent, args, context, info) {
+    async loginUser(parent, args, { res }, info) {
       // Check user
       const userExists = await User.findOne({ email: args.email })
 
@@ -60,37 +72,18 @@ const resolvers = {
         throw new Error("Password is incorrect")
       }
 
-      return {
-        message: "User logged in successfully",
-        name: userExists.name,
-        email: userExists.email,
-        accessToken: genAccessToken(userExists.id),
-        refreshToken: genRefreshToken(userExists.id),
-      }
-    },
+      if (isPasswordCorrect) {
+        const refreshToken = genRefreshToken(userExists._id)
 
-    async refreshToken(parent, { refreshToken }, context, info) {
-      const token = refreshToken
-      // Check token in header
-      if (!token) {
-        return ""
-      }
-      // Verify token
-      let payload = null
-      try {
-        payload = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET)
-      } catch (error) {
-        return ""
-      }
-      // Check if user matches payload userId
-      const user = await User.findOne({ _id: payload.userId })
-      if (user._id.toString() !== payload.userId) {
-        return ""
-      }
+        res.cookie("rfTkn", refreshToken, {
+          httpOnly: true,
+          maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+        })
 
-      // Token is valid, generate new access token
-      return {
-        token: genAccessToken(user._id),
+        return {
+          accessToken: genAccessToken(userExists._id),
+          success: true,
+        }
       }
     },
   },
